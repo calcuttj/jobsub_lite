@@ -148,13 +148,6 @@ def do_dataset_defaults(varg: Dict[str, Any]) -> None:
     if not have_group:
         varg["environment"].append(f"SAM_GROUP={experiment}")
 
-def do_datadispatcher_defaults(varg: Dict[str, Any]) -> None: #TODO: replace sam comments
-    """
-    make sure to pass appropriate SAM_* environment variables if we
-    are doing datasets.  Pick a SAM_PROJECT name if we don't have one.
-    """
-    varg["environment"].append(f'DD_PROJECT={varg["dd_project"]}')
-
 def main():
     """script mainline:
     - parse args
@@ -219,10 +212,10 @@ def main():
         if not varg.get("no_submit", False):
             os.chdir(varg["submitdir"])
             submit_dag(os.path.join(submitdir, "*.dag"), varg, schedd_name)
-    ##TODO: merge with the previous?
     elif args.dd_project:
-        print(f'PROVIDED DATA DISPATCHER PROJECT {args.dd_project}')
-        do_datadispatcher_defaults(varg)
+        #Pretty similar to the previous option -- but using Data Dispatcher
+        #rather than samweb. Just set the DD_PROJECT env var
+        varg["environment"].append(f'DD_PROJECT={varg["dd_project"]}')
         d1 = os.path.join(PREFIX, "templates", "datadispatcher_dag")
         d2 = f"{PREFIX}/templates/simple"
         # so we render the simple area (d2) with -N 1 because
