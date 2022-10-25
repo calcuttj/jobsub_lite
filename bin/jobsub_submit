@@ -128,6 +128,7 @@ def do_dataset_defaults(varg: Dict[str, Any]) -> None:
             have_group = True
         if e[:pos] == "SAM_EXPERIMENT":
             experiment = e[pos + 1 :]
+        #if e[:pos] == "DD_":
 
     if not have_project:
         # if not, grab from the environment, or use dataset_$USER_$uuid
@@ -147,6 +148,12 @@ def do_dataset_defaults(varg: Dict[str, Any]) -> None:
     if not have_group:
         varg["environment"].append(f"SAM_GROUP={experiment}")
 
+def do_datadispatcher_defaults(varg: Dict[str, Any]) -> None: #TODO: replace sam comments
+    """
+    make sure to pass appropriate SAM_* environment variables if we
+    are doing datasets.  Pick a SAM_PROJECT name if we don't have one.
+    """
+    varg["environment"].append(f'DD_PROJECT={varg["dd_project"]}')
 
 def main():
     """script mainline:
@@ -200,6 +207,23 @@ def main():
     elif args.dataset_definition:
         do_dataset_defaults(varg)
         d1 = os.path.join(PREFIX, "templates", "dataset_dag")
+        d2 = f"{PREFIX}/templates/simple"
+        # so we render the simple area (d2) with -N 1 because
+        # we are making a loop of 1..N in th dataset_dag area
+        # otherwise we get N submissions of N jobs -> N^2 jobs...
+        saveN = varg["N"]
+        varg["N"] = "1"
+        render_files(d2, varg, submitdir, dlist=[d1, d2])
+        varg["N"] = saveN
+        render_files(d1, varg, submitdir, dlist=[d1, d2, submitdir])
+        if not varg.get("no_submit", False):
+            os.chdir(varg["submitdir"])
+            submit_dag(os.path.join(submitdir, "*.dag"), varg, schedd_name)
+    ##TODO: merge with the previous?
+    elif args.dd_project:
+        print(f'PROVIDED DATA DISPATCHER PROJECT {args.dd_project}')
+        do_datadispatcher_defaults(varg)
+        d1 = os.path.join(PREFIX, "templates", "datadispatcher_dag")
         d2 = f"{PREFIX}/templates/simple"
         # so we render the simple area (d2) with -N 1 because
         # we are making a loop of 1..N in th dataset_dag area
